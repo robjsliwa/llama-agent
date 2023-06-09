@@ -1,4 +1,4 @@
-langchain
-llama-cpp-python
+langchain==0.0.181
+llama-cpp-python==0.1.54
 openai
 python-dotenv
