@@ -1,6 +1,8 @@
 import logging
+import asyncio
 from langchain.chat_models.base import BaseChatModel
 from typing import Any, Dict, Generator, List, Optional
+from functools import partial
 from pydantic import Field, root_validator
 from langchain.callbacks.manager import (
     # AsyncCallbackManager,
@@ -283,19 +285,7 @@ class ChatLlamaCpp(BaseChatModel):
         stop: Optional[List[str]] = None,
         run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
     ) -> ChatResult:
-        if self.streaming:
-            output_str = ""
-            for chunk in self._stream(
-                messages, stop=stop, run_manager=run_manager
-            ):
-                output_str += chunk["choices"][0]["delta"].get("content", "")
-        else:
-            params = self._get_parameters(stop)
-            result = self.client.create_chat_completion(
-                self._messageConverter(messages), **params
-            )
-            output_str = result["choices"][0]["delta"].get("content", "")
-
-        message = AIMessage(content=output_str)
-        generation = ChatGeneration(message=message)
-        return ChatResult(generations=[generation])
+        func = partial(
+            self._generate, messages, stop=stop, run_manager=run_manager
+        )
+        return await asyncio.get_event_loop().run_in_executor(None, func)
